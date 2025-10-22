@@ -1,0 +1,33 @@
+/* Get a fancy font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans&family=Nunito:wght@500&family=Roboto&display=swap');
+
+
+.main-header .logo {
+  font-family: 'Bahnschrift', sans-serif;
+  font-weight: bold;
+  font-size: 24px;
+  style = "text-align: center;"
+}
+
+.main-sidebar {
+  font-family: 'Bahnschrift', sans-serif;
+  font-size: 18px; 
+  style = "text-align: center;"
+}
+
+.header_1 {
+  font-family: 'Bahnschrift', sans-serif;
+  font-size: 18px; 
+  font-weight: bold;
+  style = "text-align: center;"
+}
+
+.irs-grid-text{font-size: 12px;
+  font-family: 'Bahnschrift', sans-serif;
+  
+}
+    
+body {
+  font-family: 'Bahnschrift', sans-serif;
+  font-size: 16px; 
+}

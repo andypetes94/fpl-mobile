@@ -1,0 +1,123 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+
+source("C:/Users/apeters/Desktop/External_Images/FPL/App/FPL_Functions.R")
+source("C:/Users/apeters/Desktop/External_Images/FootyViz.R")
+library(dplyr)
+library(httr)
+library(jsonlite)
+library(zoo)
+library(tidyr)
+
+#systemfonts::system_fonts() |> View()
+
+
+```
+
+
+```{r}
+
+library("jsonlite")
+#json_file <- "http://api.worldbank.org/country?per_page=10&region=OED&lendingtype=LNX&format=json"
+json_data <- fromJSON(txt="C:/Streamlit_Apps/Test_App2/JSON/FPL_24.json", flatten = T)
+
+#jsonRespText<-content(json_data) 
+#JSON_Output <- fromJSON(json_data)
+
+Teams <- json_data$teams
+
+
+rank_history = tibble(rank = c(1004738, 54894, 5894, 23849),
+                          year = c(2021,2022,2023,2024))
+  
+
+FPL_Team <- GET(paste0('https://fantasy.premierleague.com/api/entry/', 110079,'/'))
+
+```
+
+```{r}
+
+df <- read.csv("C:/Users/apeters/Desktop/External_Images/FPL/App/Players_History.csv")
+
+player_comparison()
+
+
+```
+
+
+
+```{r}
+
+Team_Summary <- read.csv("C:/Users/apeters/Desktop/External_Images/FPL/App/Team_summary.csv")
+
+output$plot2 <- renderPlot({
+    
+    FPL_Team <- GET(paste0('https://fantasy.premierleague.com/api/entry/', input$team_id, '/history/'))
+    
+    
+    jsonRespText<-content(FPL_Team, as="text") 
+    JSON_Output <- fromJSON(jsonRespText)
+    
+    Chips <- JSON_Output$chips %>%
+      select(-time)
+    
+    temp_df <- team_picks_parse(input$team_id, max(Players_History$round)) %>%
+      left_join(Chips, by = c('event')) %>%
+      rename(chip = name) %>%
+      mutate(chip_short = case_when(chip == 'wildcard' ~ 'WC',
+                                    chip == 'freehit' ~ 'FH',
+                                    chip == 'bboost' ~ 'BB',
+                                    chip == '3xc' ~ 'TC',
+                                    T ~'')) %>%
+      mutate(GW_Chip = paste(event,"\n",chip_short)) %>%
+      mutate(GW_Chip = str_replace(GW_Chip, " ",""))
+    
+    
+    Team_Summary <- temp_df %>%
+      mutate(rank_percentile = (rank_sort/ current_players)*100) %>%
+      mutate(line_color = lead(rank_percentile)) %>%
+      mutate(total_short = case_when(overall_rank >= 1000000 ~ paste0(round(overall_rank / 1000000, digits = 1), "M"),
+                                     overall_rank < 1000 ~ as.character(overall_rank),
+                                     T ~ paste0(round(overall_rank / 1000, digits = 0),"K"))) %>%
+      mutate(movement = case_when(rank_percentile <= 20  ~ "Elite",
+                                    rank_percentile > 20  & rank_percentile <= 40 ~ "Good",
+                                    rank_percentile > 40  & rank_percentile <= 60 ~ "Average",
+                                    T ~ "Below Average"))
+    
+    small_df2 <- Team_Summary %>%
+      filter(!is.na(chip))
+    
+    #maxi <- 10
+    #for (i in 1:maxi) {
+    #  updateProgressBar(session = session, id = "pb2", value = (i/maxi)*100)
+    #  Sys.sleep(0.1)
+    #}
+    
+    Names1 <- Team_Summary$GW_Chip
+    Breaks1 <- Team_Summary$event
+    
+    
+    #v3$plot <- rank_percentile_plot(Team_Summary, small_df2, Names1, Breaks1)
+    p <- rank_percentile_plot(Team_Summary, small_df2, Names1, Breaks1)
+    
+    #p <- v3$plot
+    
+    p
+    
+    
+    
+  })
+
+
+
+```
+
+
