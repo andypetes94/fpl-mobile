@@ -3,6 +3,8 @@
 **FPL Data Vizard (Mobile)** is an interactive, mobile-optimized Shiny app designed for Fantasy Premier League (FPL) managers who want **data-driven insights on the go**.
 Built with [`shinyMobile`](https://rinterface.github.io/shinyMobile/), this app delivers a native iOS/Android-like experience, combining the analytical power of R with a sleek, responsive design.
 
+The app has been deployed to *shinyapps.io* and can be found [here](https://andypetes.shinyapps.io/Test_Mobile/)
+
 ---
 
 ## 📱 Features
@@ -150,7 +152,7 @@ To make your app accessible online:
 **Andrew Peters**
 *Data Scientist & Visualiser*
 📊 Transforming FPL data into actionable insights
-💼 Portfolio : [Click Here](https://andypeters94.quarto.pub/andrew-peters-background/)
+💼 Portfolio : [Click Here](https://andypetes94.github.io/portfolio-andrewpeters/)
 
 ---
 

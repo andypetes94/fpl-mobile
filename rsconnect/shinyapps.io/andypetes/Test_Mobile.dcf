@@ -5,7 +5,7 @@ account: andypetes
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12449975
-bundleId: 10970100
+bundleId: 11087678
 url: https://andypetes.shinyapps.io/Test_Mobile/
 version: 1
 asMultiple: FALSE
