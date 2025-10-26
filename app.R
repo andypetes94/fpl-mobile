@@ -10,7 +10,6 @@
 library(shiny)
 library(shinyMobile)
 library(bslib)
-#source('./FPL_Functions.R')
 source('./Mobile_Functions.R')
 library(dplyr)
 library(tidyverse)
@@ -212,12 +211,12 @@ div.dataTables_scrollHead span {color: black;}
             plotOutput("team_comparison_plot"),
             f7DownloadButton(outputId = "down_team_comparison", label = "Download this plot!"),
             br(),
-            selectInput(inputId = "team_positions", label = "Select Position:", choices = c("GK","DEF","MID","ST"), selected = c("ST")),
-            f7Slider(inputId = "players_slider", label = "Select No. of Players:", min = 0, max = 40, value = 10, step = 1, scaleSteps = 8, scale = TRUE, color = "lightblue", labels = tagList(f7Icon("circle"),f7Icon("money_pound_circle"))),
-            br(),
-            selectInput(inputId = "all_metrics", label = "Select Metric:", choices = c("all_xgi","all_xg","all_xa"), selected = c("all_xgi")),
-            plotOutput("player_output_plot"),
-            f7DownloadButton(outputId = "down_player_output_plot", label = "Download this plot!"),
+            # selectInput(inputId = "team_positions", label = "Select Position:", choices = c("GK","DEF","MID","ST"), selected = c("ST")),
+            # f7Slider(inputId = "players_slider", label = "Select No. of Players:", min = 0, max = 40, value = 10, step = 1, scaleSteps = 8, scale = TRUE, color = "lightblue", labels = tagList(f7Icon("circle"),f7Icon("money_pound_circle"))),
+            # br(),
+            # selectInput(inputId = "all_metrics", label = "Select Metric:", choices = c("all_xgi","all_xg","all_xa"), selected = c("all_xgi")),
+            # plotOutput("player_output_plot"),
+            # f7DownloadButton(outputId = "down_player_output_plot", label = "Download this plot!"),
             
           )
         ),
