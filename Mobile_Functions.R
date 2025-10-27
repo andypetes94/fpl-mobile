@@ -1171,7 +1171,8 @@ team_picks_parse <- function(team_id, Gameweeks) {
 rank_down_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
   
   p <- ggplot(data, aes(x = event, y = overall_rank)) +
-    geom_vline(data = small_df2, aes(xintercept = event), color = "lightgray", size = 9) +
+    #geom_vline(data = small_df2, aes(xintercept = event), color = "lightgray", size = 5) +
+    geom_rect(data = small_df2, aes(xmin = event - 0.4, xmax = event + 0.4, ymin = 0, ymax = Inf), fill = "lightgray", color = NA, show.legend = F) +
     geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "gray", alpha = 0.6) +
     geom_borderline(color = "gray60", size = 2, bordercolour = "#F3E9E2", borderwidth = 0.5, show.legend = F) +
     geom_point(aes(fill = movement), shape = 21, stroke = 1, size = 7, color = "#F3E9E2") +
@@ -1237,7 +1238,8 @@ rank_down_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
 rank_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
   
   p <- ggplot(data, aes(x = event, y = overall_rank)) +
-    geom_vline(data = small_df2, aes(xintercept = event), color = "lightgray", size = 5) +
+    #geom_vline(data = small_df2, aes(xintercept = event), color = "lightgray", size = 5) +
+    geom_rect(data = small_df2, aes(xmin = event - 0.4, xmax = event + 0.4, ymin = 0, ymax = Inf), fill = "lightgray", color = NA, show.legend = F) +
     geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "gray", alpha = 0.6) +
     geom_borderline(color = "gray60", size = 1.5, bordercolour = "#F3E9E2", borderwidth = 0.3, show.legend = F) +
     geom_point(aes(fill = movement), shape = 21, stroke = 0.75, size = 4, color = "#F3E9E2") +
@@ -1304,13 +1306,15 @@ rank_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
 transfer_down_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
   
   p <- ggplot(data, aes(x = Gameweek, y = `Points Difference After Hits`, color = as.factor(movement), fill = as.factor(movement))) +
-    geom_vline(data = small_df2, aes(xintercept = Gameweek), color = "lightgray", size = 9) +
+    #geom_vline(data = small_df2, aes(xintercept = event), color = "lightgray", size = 5) +
+    geom_rect(data = small_df2, aes(xmin = event - 0.4, xmax = event + 0.4, ymin = -Inf, ymax = Inf), fill = "lightgray", color = NA, show.legend = F) +
     geom_bar(stat = "identity", color = NA, width = 0.8) +
     #geom_segment(aes(x = Gameweek, xend = Gameweek, y = 0, yend = `Points Difference After Hits`), size = 3, show.legend = F) +
     geom_hline(yintercept = 0, color = "gray30", size = 0.75) +
     #geom_point(shape = 21, stroke = 1.25, size = 6, color = "#F3E9E2") +
-    geom_text(data = data %>% filter(`Points Difference After Hits` >= 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 5, fontface = "bold", family = "Lato", nudge_y = 1) +
-    geom_text(data = data %>% filter(`Points Difference After Hits` < 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 5, fontface = "bold", family = "Lato", nudge_y = -1) +    scale_color_manual(limits = c("Good","Average","Poor"),
+    geom_text(data = data %>% filter(`Points Difference After Hits` >= 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 5, fontface = "bold", family = "Lato", nudge_y = 1, show.legend = F) +
+    geom_text(data = data %>% filter(`Points Difference After Hits` < 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 5, fontface = "bold", family = "Lato", nudge_y = -1, show.legend = F) +    
+    scale_color_manual(limits = c("Good","Average","Poor"),
                        #values = c('#66C2A5','#FFBF00','#F2055C'),
                        values = c('#379A8B','#006BA2','#DB444B')) +
     scale_fill_manual(limits = c("Good","Average","Poor"),
@@ -1376,13 +1380,14 @@ transfer_down_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
 transfer_plot <- function(data, small_df2, Names1, Breaks1, Team_Name) {
   
   p <- ggplot(data, aes(x = Gameweek, y = `Points Difference After Hits`, color = as.factor(movement), fill = as.factor(movement))) +
-    geom_vline(data = small_df2, aes(xintercept = Gameweek), color = "lightgray", size = 5) +
+    #geom_vline(data = small_df2, aes(xintercept = Gameweek), color = "lightgray", size = 5) +
+    geom_rect(data = small_df2, aes(xmin = Gameweek - 0.4, xmax = Gameweek + 0.4, ymin = -Inf, ymax = Inf), fill = "lightgray", color = NA, show.legend = F) +
     geom_bar(stat = "identity", color = NA, width = 0.6) +
     #geom_segment(aes(x = Gameweek, xend = Gameweek, y = 0, yend = `Points Difference After Hits`), size = 3, show.legend = F) +
     geom_hline(yintercept = 0, color = "gray30", size = 0.75) +
     #geom_point(shape = 21, stroke = 1.25, size = 6, color = "#F3E9E2") +
-    geom_text(data = data %>% filter(`Points Difference After Hits` >= 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 3, fontface = "bold", family = "Lato", nudge_y = 0.7) +
-    geom_text(data = data %>% filter(`Points Difference After Hits` < 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 3, fontface = "bold", family = "Lato", nudge_y = -0.7) +
+    geom_text(data = data %>% filter(`Points Difference After Hits` >= 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 3, fontface = "bold", family = "Lato", nudge_y = 0.7, show.legend = F) +
+    geom_text(data = data %>% filter(`Points Difference After Hits` < 0), aes(label = round(`Points Difference After Hits`, digits = 0)), size = 3, fontface = "bold", family = "Lato", nudge_y = -0.7, show.legend = F) +
     scale_color_manual(limits = c("Good","Average","Poor"),
                        #values = c('#66C2A5','#FFBF00','#F2055C'),
                        values = c('#379A8B','#006BA2','#DB444B')) +
