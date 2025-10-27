@@ -46,7 +46,7 @@ General_Info <- JSON_Output$elements %>%
   select(id, first_name, second_name, web_name, team, element_type, photo) %>%
   left_join(Teams, by = c('team' = 'code'))
 
-write.csv(General_Info, file.path(out_dir, "General_Info.csv"), row.names = FALSE)
+write.csv(General_Info, file.path(out_dir, "General_Info.csv"), row.names = FALSE, fileEncoding = "UTF-8")
 cat("General Info saved.\n\n")
 
 #-------------------------------
@@ -164,7 +164,7 @@ All_Players_Final <- All_Players %>%
   mutate(team_xg_mean = lag(rollapplyr(team_xg, 5, mean, partial = TRUE)))
 
 
-write.csv(All_Players_Final, file.path(out_dir, "Players_History.csv"), row.names = FALSE)
+write.csv(All_Players_Final, file.path(out_dir, "Players_History.csv"), row.names = FALSE, fileEncoding = "UTF-8")
 cat("Players History saved.\n\n")
 
 #-------------------------------
@@ -185,7 +185,7 @@ Players_Gameweek <- All_Players_Final %>%
                              games == 1 ~ "SGW",
                              is.na(games) ~ "BGW")) 
 
-write.csv(Players_Gameweek, file.path(out_dir, "Players_Gameweek.csv"), row.names = FALSE)
+write.csv(Players_Gameweek, file.path(out_dir, "Players_Gameweek.csv"), row.names = FALSE, fileEncoding = "UTF-8")
 cat("Players_Gameweek saved.\n\n")
 
 #-------------------------------
@@ -242,6 +242,6 @@ Fixtures2 <- Fixtures %>%
   separate(event_name, c("string", "round")) %>%
   select(-string)
 
-write.csv(Fixtures2, file.path(out_dir, "Fixtures.csv"), row.names = FALSE)
+write.csv(Fixtures2, file.path(out_dir, "Fixtures.csv"), row.names = FALSE, fileEncoding = "UTF-8")
 cat("Fixtures saved.\n\n")
 cat("All files successfully downloaded to:", normalizePath(out_dir), "\n")

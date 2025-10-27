@@ -7,6 +7,9 @@
 #    http://shiny.rstudio.com/
 #
 
+options(encoding = "UTF-8")
+Sys.setlocale("LC_CTYPE", "en_US.UTF-8")
+
 library(shiny)
 library(shinyMobile)
 library(bslib)
