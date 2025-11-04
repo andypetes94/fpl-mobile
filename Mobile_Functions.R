@@ -194,49 +194,51 @@ comparison_bar <- function(data) {
 
 team_parse <- function(data, start_gameweek, end_gameweek, team_minutes, team_name) {
   
+  # --- Create fixtures_df ---
   fixtures_df <- data %>%
-    mutate(opposition = case_when(was_home == 'TRUE' ~ paste0('GW', round, ' - ', opp_short_team_name, " (H)"),
-                                  was_home == 'FALSE' ~ paste0('GW', round, ' - ', opp_short_team_name, " (A)"))) %>%
-    mutate(team = case_when(was_home == 'TRUE' ~ paste0('GW', round, ' - ', short_team_name, " (A)"),
-                            was_home == 'FALSE' ~ paste0('GW', round, ' - ', short_team_name, " (H)"))) %>%
-    group_by(short_team_name, round, opposition, team) %>%
-    summarise(count = n()) %>%
-    ungroup() %>%
+    mutate(
+      opposition = paste0('GW', round, ' - ', opp_short_team_name,
+                          ifelse(was_home == TRUE, " (H)", " (A)")),
+      team = paste0('GW', round, ' - ', short_team_name,
+                    ifelse(was_home == TRUE, " (A)", " (H)"))
+    ) %>%
+    group_by(short_team_name, round, opp_short_team_name, opposition, team) %>%
+    summarise(count = n(), .groups = "drop") %>%
     group_by(short_team_name, round) %>%
     filter(count >= 11) %>%
     ungroup() %>%
-    unite("merged",opposition:team, remove = F)
+    mutate(
+      # clean join key
+      join_key = paste(round, short_team_name, opp_short_team_name, sep = "_")
+    )
   
-  
+  # --- Create Minutes_Data ---
   Minutes_Data <- data %>%
-    mutate(opposition = case_when(was_home == 'TRUE' ~ paste0('GW', round, ' - ', opp_short_team_name, " (H)"),
-                                  was_home == 'FALSE' ~ paste0('GW', round, ' - ', opp_short_team_name, " (A)"))) %>%
-    mutate(team = case_when(was_home == 'TRUE' ~ paste0('GW', round, ' - ', short_team_name, " (A)"),
-                            was_home == 'FALSE' ~ paste0('GW', round, ' - ', short_team_name, " (H)"))) %>%
-    unite("merged",opposition:team, remove = F) %>%
+    mutate(
+      opposition = paste0('GW', round, ' - ', opp_short_team_name,
+                          ifelse(was_home == TRUE, " (H)", " (A)")),
+      team = paste0('GW', round, ' - ', short_team_name,
+                    ifelse(was_home == TRUE, " (A)", " (H)")),
+      join_key = paste(round, short_team_name, opp_short_team_name, sep = "_")
+    ) %>%
     filter(round >= start_gameweek & round <= end_gameweek) %>%
-    filter(opposition %in% fixtures_df$opposition) %>%
-    filter(merged %in% fixtures_df$merged) %>%
-    group_by(short_team_name, opp_short_team_name, name_club, merged,kickoff_time) %>%
-    reframe(minutes = minutes,
-            Game = case_when(was_home == "TRUE" ~ "H",
-                             T ~ "A"),
-            opposition = unique(opposition),
-            team = unique(team),
-            xgi = expected_goal_involvements, 
-            #all_xgi = sum(expected_goal_involvements),
-            name = web_name,
-            points = total_points,
-            Position = Position,
-            opp_team = opp_team_name,
-            #points = total_points,
-            #all_points = sum(total_points),
-            #all_minutes = sum(minutes),
-            #opp_name = paste0(opp_short_team_name, " (",Game,") - GW ", round),
-            opp_name = paste0(opp_short_team_name, "\n(",Game,")\n", round),
-            Gameweek = round) %>%
-    unite("merged2",team:opposition, remove = F) %>%
-    arrange(desc(merged)) %>%
+    # join on clean key instead of messy merged strings
+    filter(join_key %in% fixtures_df$join_key) %>%
+    group_by(short_team_name, opp_short_team_name, name_club, kickoff_time, join_key) %>%
+    reframe(
+      minutes = minutes,
+      Game = ifelse(was_home == TRUE, "H", "A"),
+      opposition = unique(opposition),
+      team = unique(team),
+      xgi = expected_goal_involvements,
+      name = web_name,
+      points = total_points,
+      Position = Position,
+      opp_team = opp_team_name,
+      opp_name = paste0(opp_short_team_name, "\n(", Game, ")\n", round),
+      Gameweek = round
+    ) %>%
+    #arrange(desc(merged)) %>%
     ungroup() %>%
     group_by(name_club) %>%
     mutate(all_minutes = sum(minutes),
@@ -259,8 +261,8 @@ team_parse <- function(data, start_gameweek, end_gameweek, team_minutes, team_na
                                 xgi <  0.05 ~ "Anonymous",
                                 xgi > 0.3 & xgi <= 0.5 ~ "Involved",
                                 T ~ "Very Involved")) %>%
-    #filter(short_team_name == input$team_team) %>%
     filter(short_team_name == team_name) %>%
+    #filter(short_team_name == "ARS") %>%
     filter(minutes > 0) %>%
     arrange(Gameweek) %>%
     mutate(opp_crest = case_when(opp_team == "Arsenal" ~ "arsenal",

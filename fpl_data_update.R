@@ -29,6 +29,8 @@ out_dir <- opt$output
 # Create output folder if it doesn't exist
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 
+cat("Starting FPL data download...\n")
+
 #-------------------------------
 # 1️⃣ Download General Info
 #-------------------------------
@@ -37,7 +39,8 @@ FPL_General <- GET('https://fantasy.premierleague.com/api/bootstrap-static/')
 JSON_Output <- fromJSON(content(FPL_General, as="text", encoding = "UTF-8"))
 
 Teams <- JSON_Output$teams %>%
-  select(id, name, short_name, strength, strength_overall_home, strength_overall_away, strength_attack_home, strength_attack_away, strength_defence_home, strength_defence_away) %>%
+  select(id, name, short_name, strength, strength_overall_home, strength_overall_away,
+         strength_attack_home, strength_attack_away, strength_defence_home, strength_defence_away) %>%
   rename(team_name = name,
          short_team_name = short_name,
          code = id)
@@ -47,7 +50,7 @@ General_Info <- JSON_Output$elements %>%
   left_join(Teams, by = c('team' = 'code'))
 
 write.csv(General_Info, file.path(out_dir, "General_Info.csv"), row.names = FALSE, fileEncoding = "UTF-8")
-cat("General Info saved.\n\n")
+cat("✅ General Info saved.\n\n")
 
 #-------------------------------
 # 2️⃣ Download Player History
@@ -63,13 +66,17 @@ for (id_value in General_Info$id) {
   FPL_Player <- GET(paste0('https://fantasy.premierleague.com/api/element-summary/', id_value, '/'))
   JSON_Output <- fromJSON(content(FPL_Player, as = "text", encoding = "UTF-8"))
   
-  History <- JSON_Output$history %>%
-    mutate(id = id_value)
+  # ✅ Skip players with no history
+  if (!is.null(JSON_Output$history) && is.data.frame(JSON_Output$history) && nrow(JSON_Output$history) > 0) {
+    History <- JSON_Output$history %>%
+      mutate(id = id_value)
+    
+    temp_output <- History %>%
+      left_join(General_Info, by = 'id')
+    
+    All_Players <- bind_rows(All_Players, temp_output)
+  }
   
-  temp_output <- History %>%
-    left_join(General_Info, by = 'id')
-  
-  All_Players <- bind_rows(All_Players, temp_output)
   pb$tick()
 }
 
@@ -77,24 +84,16 @@ test <- All_Players %>%
   group_by(round, short_team_name) %>%
   summarise(total_xg_conceded = max(expected_goals_conceded), .groups = "drop")
 
-
 All_Players <- All_Players %>%
   left_join(test, by = c('round', 'short_team_name'))
-
 
 Opp_Team <- Teams$code
 
 for (var in colnames(Teams)){
-  
   nam <- paste0("opp_", var)
-  
-  #column <- sbdata_style[var] * sbdata_style$elo_adjust
   column <- Teams[var]
-  
   colnames(column) <- c(nam)
-  
   Opp_Team <- cbind(Opp_Team,column)
-  
 }
 
 Opp_Team <- Opp_Team %>%
@@ -102,48 +101,33 @@ Opp_Team <- Opp_Team %>%
 
 All_Players_Final <- All_Players %>%
   left_join(Opp_Team, by = c('opponent_team' = 'opp_code')) %>%
-  mutate(team_strength = case_when(was_home == "TRUE" ~ strength_overall_home, 
-                                   T ~ strength_overall_away),
-         opp_team_strength = case_when(was_home == "FALSE" ~ opp_strength_overall_home, 
-                                       T ~ opp_strength_overall_away),
-         team_strength_att = case_when(was_home == "TRUE" ~ strength_attack_home, 
-                                       T ~ strength_attack_away),
-         opp_team_strength_att = case_when(was_home == "FALSE" ~ opp_strength_attack_home, 
-                                           T ~ opp_strength_attack_away),
-         team_strength_def = case_when(was_home == "TRUE" ~ strength_defence_home, 
-                                       T ~ strength_defence_away),
-         opp_team_strength_def = case_when(was_home == "FALSE" ~ opp_strength_defence_home, 
-                                           T ~ opp_strength_defence_away)) %>%
-  select(-strength_overall_home, -strength_overall_away, -strength_attack_home, -strength_attack_away, -strength_defence_home, -strength_defence_away) %>%
-  select(-opp_strength_overall_home, -opp_strength_overall_away, -opp_strength_attack_home, -opp_strength_attack_away, -opp_strength_defence_home, -opp_strength_defence_away) %>%
+  mutate(team_strength = case_when(was_home == "TRUE" ~ strength_overall_home,
+                                   TRUE ~ strength_overall_away),
+         opp_team_strength = case_when(was_home == "FALSE" ~ opp_strength_overall_home,
+                                       TRUE ~ opp_strength_overall_away),
+         team_strength_att = case_when(was_home == "TRUE" ~ strength_attack_home,
+                                       TRUE ~ strength_attack_away),
+         opp_team_strength_att = case_when(was_home == "FALSE" ~ opp_strength_attack_home,
+                                           TRUE ~ opp_strength_attack_away),
+         team_strength_def = case_when(was_home == "TRUE" ~ strength_defence_home,
+                                       TRUE ~ strength_defence_away),
+         opp_team_strength_def = case_when(was_home == "FALSE" ~ opp_strength_defence_home,
+                                           TRUE ~ opp_strength_defence_away)) %>%
+  select(-starts_with("strength_")) %>%
+  select(-starts_with("opp_strength_")) %>%
   mutate(Position = case_when(element_type == 1 ~ "GK",
                               element_type == 2 ~ "DEF",
                               element_type == 3 ~ "MID",
                               element_type == 4 ~ "ST")) %>%
-  mutate(Goals = case_when(was_home == "TRUE" ~ team_h_score,
-                           T ~ team_a_score)) %>%
-  mutate(Opp_Goals = case_when(was_home == "FALSE" ~ team_h_score,
-                               T ~ team_a_score)) %>%
-  mutate(name_club = paste0(web_name," (", short_team_name, ")")) %>%
-  mutate(full_name = paste0(first_name, " ", second_name)) %>%
-  select(-team_h_score, -team_a_score,-element,-fixture,-opponent_team,-element_type,-team, -team_name) %>%
-  mutate(influence = as.numeric(influence),
-         creativity = as.numeric(creativity),
-         threat = as.numeric(threat),
-         ict_index = as.numeric(ict_index),
-         starts = as.numeric(starts),
-         expected_goals = as.numeric(expected_goals),
-         expected_assists = as.numeric(expected_assists),
-         expected_goal_involvements = as.numeric(expected_goal_involvements),
-         expected_goals_conceded = as.numeric(expected_goals_conceded),
-         web_name = as.factor(web_name),
-         #id = as.factor(id),
-         short_team_name = as.factor(short_team_name),
-         opp_short_team_name = as.factor(opp_short_team_name),
-         Position = as.factor(Position)) %>%
+  mutate(Goals = if_else(was_home == "TRUE", team_h_score, team_a_score),
+         Opp_Goals = if_else(was_home == "FALSE", team_h_score, team_a_score),
+         name_club = paste0(web_name," (", short_team_name, ")"),
+         full_name = paste0(first_name, " ", second_name)) %>%
+  mutate(across(c(influence, creativity, threat, ict_index, starts,
+                  expected_goals, expected_assists, expected_goal_involvements,
+                  expected_goals_conceded), as.numeric)) %>%
   group_by(id) %>%
   mutate(cs_mean = lag(rollapplyr(clean_sheets, 5, mean, partial = TRUE)),
-         #recent_starts = lag(rollapplyr(starts, 5, mean, partial = TRUE)),
          recent_starts = lag(rollapplyr(minutes, 5, mean, partial = TRUE)),
          points_mean = lag(rollapplyr(total_points, 5, mean, partial = TRUE)),
          bps_mean = lag(rollapplyr(bps, 5, mean, partial = TRUE)),
@@ -163,9 +147,8 @@ All_Players_Final <- All_Players %>%
   ungroup() %>%
   mutate(team_xg_mean = lag(rollapplyr(team_xg, 5, mean, partial = TRUE)))
 
-
 write.csv(All_Players_Final, file.path(out_dir, "Players_History.csv"), row.names = FALSE, fileEncoding = "UTF-8")
-cat("Players History saved.\n\n")
+cat("✅ Players History saved.\n\n")
 
 #-------------------------------
 # 3️⃣ Players_Gameweek
@@ -183,10 +166,10 @@ Players_Gameweek <- All_Players_Final %>%
   fill(id, .direction = "updown") %>%
   mutate(GW_Type = case_when(games == 2 ~ "DGW",
                              games == 1 ~ "SGW",
-                             is.na(games) ~ "BGW")) 
+                             is.na(games) ~ "BGW"))
 
 write.csv(Players_Gameweek, file.path(out_dir, "Players_Gameweek.csv"), row.names = FALSE, fileEncoding = "UTF-8")
-cat("Players_Gameweek saved.\n\n")
+cat("✅ Players_Gameweek saved.\n\n")
 
 #-------------------------------
 # 4️⃣ Fixtures
@@ -202,46 +185,39 @@ for (id_value in General_Info$id) {
   FPL_Player <- GET(paste0('https://fantasy.premierleague.com/api/element-summary/', id_value, '/'))
   JSON_Output <- fromJSON(content(FPL_Player, as = "text", encoding = "UTF-8"))
   
-  History <- JSON_Output$fixtures %>%
-    mutate(id = id_value)
+  # ✅ Skip players with no fixtures
+  if (!is.null(JSON_Output$fixtures) && is.data.frame(JSON_Output$fixtures) && nrow(JSON_Output$fixtures) > 0) {
+    History <- JSON_Output$fixtures %>%
+      mutate(id = id_value)
+    
+    temp_output <- History %>%
+      left_join(General_Info, by = "id")
+    
+    Fixtures <- bind_rows(Fixtures, temp_output)
+  }
   
-  temp_output <- History %>%
-    left_join(General_Info, by = "id")
-  
-  Fixtures <- bind_rows(Fixtures, temp_output)
   pb$tick()
 }
 
 Fixtures2 <- Fixtures %>%
-  mutate(team_id = case_when(is_home == "TRUE" ~ team_h,
-                             T ~ team_a),
-         opp_team_id = case_when(is_home == "FALSE" ~ team_h,
-                                 T ~ team_a)) %>%
-  #select(id, first_name, second_name, web_name, team, element_type, photo) %>%
+  mutate(team_id = if_else(is_home == "TRUE", team_h, team_a),
+         opp_team_id = if_else(is_home == "FALSE", team_h, team_a)) %>%
   left_join(Opp_Team, by = c('opp_team_id' = 'opp_code')) %>%
   mutate(id = as.factor(id)) %>%
   rename(was_home = is_home) %>%
-  mutate(team_strength = case_when(was_home == "TRUE" ~ strength_overall_home, 
-                                   T ~ strength_overall_away),
-         home_team = case_when(was_home == "TRUE" ~ team_name, 
-                               T ~ opp_team_name),
-         away_team = case_when(was_home == "FALSE" ~ team_name, 
-                               T ~ opp_team_name),
-         opp_team_strength = case_when(was_home == "FALSE" ~ opp_strength_overall_home, 
-                                       T ~ opp_strength_overall_away),
-         team_strength_att = case_when(was_home == "TRUE" ~ strength_attack_home, 
-                                       T ~ strength_attack_away),
-         opp_team_strength_att = case_when(was_home == "FALSE" ~ opp_strength_attack_home, 
-                                           T ~ opp_strength_attack_away),
-         team_strength_def = case_when(was_home == "TRUE" ~ strength_defence_home, 
-                                       T ~ strength_defence_away),
-         opp_team_strength_def = case_when(was_home == "FALSE" ~ opp_strength_defence_home, 
-                                           T ~ opp_strength_defence_away)) %>%
-  select(-strength_overall_home, -strength_overall_away, -strength_attack_home, -strength_attack_away, -strength_defence_home, -strength_defence_away) %>%
-  select(-opp_strength_overall_home, -opp_strength_overall_away, -opp_strength_attack_home, -opp_strength_attack_away, -opp_strength_defence_home, -opp_strength_defence_away) %>%
+  mutate(team_strength = if_else(was_home == "TRUE", strength_overall_home, strength_overall_away),
+         home_team = if_else(was_home == "TRUE", team_name, opp_team_name),
+         away_team = if_else(was_home == "FALSE", team_name, opp_team_name),
+         opp_team_strength = if_else(was_home == "FALSE", opp_strength_overall_home, opp_strength_overall_away),
+         team_strength_att = if_else(was_home == "TRUE", strength_attack_home, strength_attack_away),
+         opp_team_strength_att = if_else(was_home == "FALSE", opp_strength_attack_home, opp_strength_attack_away),
+         team_strength_def = if_else(was_home == "TRUE", strength_defence_home, strength_defence_away),
+         opp_team_strength_def = if_else(was_home == "FALSE", opp_strength_defence_home, opp_strength_defence_away)) %>%
+  select(-starts_with("strength_")) %>%
+  select(-starts_with("opp_strength_")) %>%
   separate(event_name, c("string", "round")) %>%
   select(-string)
 
 write.csv(Fixtures2, file.path(out_dir, "Fixtures.csv"), row.names = FALSE, fileEncoding = "UTF-8")
-cat("Fixtures saved.\n\n")
-cat("All files successfully downloaded to:", normalizePath(out_dir), "\n")
+cat("✅ Fixtures saved.\n\n")
+cat("🎉 All files successfully downloaded to:", normalizePath(out_dir), "\n")
